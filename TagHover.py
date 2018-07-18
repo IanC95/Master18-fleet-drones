@@ -50,12 +50,21 @@ while StartHeight == -9999:
 	StartHeight = drone.NavData["altitude"][3]
 	time.sleep(0.001)
 
+prevX = 500
+prevY = 500
+prevAltitude = StartHeight
+
 #Takeoff then wait for calibration
 drone.takeoff()
 #While drone state is "landed" wait
 while drone.NavData["demo"][0][2]:	time.sleep(0.1)
 
 print("Drone is flying")
+
+backForward = 0
+leftRight = 0
+UpDown = 0
+turnLeftRight = 0
 
 #In flight routine
 end = False
@@ -70,14 +79,12 @@ while not end:
 	tagRot	= drone.NavData["vision_detect"][7] #Rotation
 	height = drone.NavData["altitude"][3]- StartHeight #Estimated Altitude
 
-	backForward = 0
-	leftRight = 0
-	UpDown = 0
-	turnLeftRight = 0
+
+
 
 	##Updown
 	#print("\nHeight = " + str(height))
-	UpDown = CosClamped(height, 200, 1600)/4.0#Calculate speed to go up or down on a cos curve
+	#UpDown = CosClamped(height, 200, 1600)/4.0#Calculate speed to go up or down on a cos curve
 	#print str(drone.NavData["vision"][10])
 	#Show detects
 	if tagNum:
@@ -104,13 +111,13 @@ while not end:
 			#0-500 = move back
 			#500-1000 = move forward
 			'''
-			ForB = 0	#Forward or Backward?
+			backForward = 0	#Forward or Backward?
 			if tagY[i] <= 400:
-				ForB = 1 * Speed
+				backForward = 1 * Speed
 			elif tagY[i] >= 600:
-				ForB = -1 * Speed
+				backForward = -1 * Speed
 			else:
-				ForB = 0
+				backForward = 0
 			'''
 			#backForward = CosClamped(tagY[i], 0, 1000)/4.0
 
@@ -127,15 +134,51 @@ while not end:
 			else:
 				leftRight = 0
 			'''
-			leftRight = CosClamped(tagX[i], 0, 1000)/4.0
+			#leftRight = CosClamped(tagX[i], 0, 1000)/4.0
 
-			print "Moving " + str(backForward) + " forward/backward and " + str(leftRight) + " left/right"
+			if tagY[i] <= 450 and tagY[i] < prevY: #Currently drifting backward
+				backForward = backForward + Speed
+			elif tagY[i] >=550 and tagY[i] > prevY: #Currently drifting forward
+				backForward = backForward - Speed
+			elif tagY[i] >=550 and tagY[i] <= prevY: #Drifting towards middle:
+				if backForward < 0:
+					backForward = backForward + Speed/10.0	#reduce speed
+			elif tagY[i] <=450 and tagY[i] >= prevY:#Drifting towards middle
+				if backForward > 0:
+					backForward = backForward - Speed/10.0	#reduce speed
+			else:
+				backForward = 0
 
+			if tagX[i] <= 450 and tagX[i] < prevX: #Currently drifting right
+				leftRight = leftRight - Speed
+			elif tagX[i] >=550 and tagX[i] > prevX: #Currently drifting left
+				leftRight = leftRight + Speed
+			elif tagX[i] >=550 and tagX[i] <= prevX: #Drifting towards middle:
+					if leftRight > 0:
+						leftRight = leftRight - Speed/10.0	#reduce speed
+			elif tagX[i] <=450 and tagX[i] >= prevX:#Drifting towards middle
+					if leftRight < 0:
+						leftRight = leftRight + Speed/10.0	#reduce speed
+			else:
+				leftRight = 0
+
+			if leftRight > 0.06:
+				leftRight = 0.06
+			elif leftRight < -0.06:
+				leftRight = -0.06
+
+			if backForward > 0.06:
+				backForward = 0.06
+			elif backForward < -0.06:
+				backForward = -0.06
+			print "Moving " + str(backForward) + " backward/forward and " + str(leftRight) + " left/right"
+			prevX = tagX[i]
+			prevY = tagY[i]
 
 
 	drone.move(leftRight, backForward, UpDown, turnLeftRight)
 
-
+	prevAltitude = drone.NavData["altitude"][3]- StartHeight
 	NDC = drone.NavDataCount
 
 ###Shutdown Sequence
