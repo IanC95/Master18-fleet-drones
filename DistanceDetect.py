@@ -3,8 +3,8 @@ import numpy as np
 
 
 
-img = cv2.imread('Ball/8.jpg',1)
-pImg = cv2.resize(img,(800,600))		# Resize
+pImg = cv2.imread('Ball/9.jpg',1)
+#pImg = cv2.resize(img,(800,600))		# Resize
 
 #Convert image from B,G,R to HSV
 hsv = cv2.cvtColor(pImg, cv2.COLOR_BGR2HSV)
@@ -49,25 +49,29 @@ if len(contours) != 0:
         Ball is approx 2 inches in diameter
         I need the focal lenght of the camera, F
         Can be calculated F = (P*D)/W
-        P is width in pixels of object, diameter in calculations from above, in my test photo 97.0234298706 was calculated
+        P is width in pixels of object, diameter in calculations from above, in my test photo 401.755432129 was calculated
         #print str(diameter)
-        D is distance to object, 12 inches in test
+        D is distance to object, 8 inches in test
         W is width of object in real life, 2 inches for ball
-        F = (97px*12in)/2in = 582.1405792
+        F = (401px*8in)/2in = 1607.021729
 
         D' = (W*F)/P
         '''
         #print str(diameter)
         W = 2
-        F = 582.1405792
+        F = 1607.021729
         P = diameter
         Distance = (W*F)/(P*1.0) #*1.0 to ensure float calculates properly
         #print Distance
         text = "Estimated distance = " + str(int(Distance)) + " inches"
         font = cv2.FONT_HERSHEY_SIMPLEX
-        cv2.putText(output, text,(center[0]-100,center[1]-50), font, 0.5,(255,255,255),1,cv2.LINE_AA)
+        pImg = cv2.resize(pImg,(800,600))		# Resize
+        output = cv2.resize(output,(800,600))		# Resize
+        cv2.putText(output, text,(100,100), font, 0.5,(255,255,255),1,cv2.LINE_AA)
 
 #Show the images
+pImg = cv2.resize(pImg,(800,600))		# Resize
+output = cv2.resize(output,(800,600))		# Resize
 cv2.imshow("Ball", np.hstack([pImg, output]))
 cv2.waitKey(0)							# OpenCV for Linux has a bug and needs this line
 cv2.destroyAllWindows()
