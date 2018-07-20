@@ -31,7 +31,7 @@ if len(contours) != 0:
     #print str(cv2.contourArea(c))
 
     #Contour must be this big to count as ball. If number too small when no ball present may detect anything
-    if cv2.contourArea(c) > 325:
+    if cv2.contourArea(c) > 300:
         #Draw contour with circle
         (x,y),radius = cv2.minEnclosingCircle(c)
         center = (int(x),int(y))
