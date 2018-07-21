@@ -3,18 +3,18 @@ import numpy as np
 
 
 
-pImg = cv2.imread('Ball/9.jpg',1)
+pImg = cv2.imread('Ball/17-5m.jpg',1)
 #pImg = cv2.resize(img,(800,600))		# Resize
 
 #Convert image from B,G,R to HSV
 hsv = cv2.cvtColor(pImg, cv2.COLOR_BGR2HSV)
 
 #range of orange in HSV
-lower_orange = np.array([7, 65, 65])
-upper_orange = np.array([10, 255, 255])
+lower_yellow = np.array([20, 100, 100])   #Gimp values (37, 60, 54)
+upper_yellow = np.array([30, 255, 255]) #Gimp values (51, 51, 80)
 
 #Threshold the hsv image
-mask = cv2.inRange(hsv, lower_orange, upper_orange)
+mask = cv2.inRange(hsv, lower_yellow, upper_yellow)
 
 #Bitwise-AND the mask and original image
 output = cv2.bitwise_and(pImg, pImg, mask = mask)
@@ -28,10 +28,10 @@ if len(contours) != 0:
 
     #Find the largest contour
     c = max(contours, key = cv2.contourArea)
-    #print str(cv2.contourArea(c))
+    print str(cv2.contourArea(c))
 
     #Contour must be this big to count as ball. If number too small when no ball present may detect anything
-    if cv2.contourArea(c) > 300:
+    if cv2.contourArea(c) > 500:
         #Draw contour with circle
         (x,y),radius = cv2.minEnclosingCircle(c)
         center = (int(x),int(y))
@@ -49,21 +49,21 @@ if len(contours) != 0:
         Ball is approx 2 inches in diameter
         I need the focal lenght of the camera, F
         Can be calculated F = (P*D)/W
-        P is width in pixels of object, diameter in calculations from above, in my test photo 401.755432129 was calculated
+        P is width in pixels of object, diameter in calculations from above, in my test photo 638.691894531 was calculated
         #print str(diameter)
-        D is distance to object, 8 inches in test
-        W is width of object in real life, 2 inches for ball
-        F = (401px*8in)/2in = 1607.021729
+        D is distance to object, 50cm in test
+        W is width of object in real life, 20cm for ball
+        F = (638.691894531 * 50)/20  = 1596.729736
 
         D' = (W*F)/P
         '''
         #print str(diameter)
-        W = 2
-        F = 1607.021729
+        W = 20
+        F = 1596.729736
         P = diameter
         Distance = (W*F)/(P*1.0) #*1.0 to ensure float calculates properly
         #print Distance
-        text = "Estimated distance = " + str(int(Distance)) + " inches"
+        text = "Estimated distance = " + str(round(Distance, 1)) + " centimeters"
         font = cv2.FONT_HERSHEY_SIMPLEX
         pImg = cv2.resize(pImg,(800,600))		# Resize
         output = cv2.resize(output,(800,600))		# Resize
