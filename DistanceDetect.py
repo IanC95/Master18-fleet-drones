@@ -3,7 +3,7 @@ import numpy as np
 
 
 
-pImg = cv2.imread('Ball/17-5m.jpg',1)
+pImg = cv2.imread('Ball/20.jpg',1)
 #pImg = cv2.resize(img,(800,600))		# Resize
 
 #Convert image from B,G,R to HSV
@@ -28,7 +28,7 @@ if len(contours) != 0:
 
     #Find the largest contour
     c = max(contours, key = cv2.contourArea)
-    print str(cv2.contourArea(c))
+    #print str(cv2.contourArea(c))
 
     #Contour must be this big to count as ball. If number too small when no ball present may detect anything
     if cv2.contourArea(c) > 500:
