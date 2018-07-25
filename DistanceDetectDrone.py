@@ -45,21 +45,26 @@ drone.getSelfRotation(5)
 print "Auto=alternation:	" + str(drone.selfRotation)+"deg/sec"
 
 #range of orange in HSV
-lower_yellow = np.array([20, 100, 100])   #Gimp values (37, 60, 54)
-upper_yellow = np.array([30, 255, 255]) #Gimp values (51, 51, 80)
+lower_yellow = np.array([15, 95, 95])   #Gimp values (37, 60, 54)
+upper_yellow = np.array([35, 255, 255]) #Gimp values (51, 51, 80)
 
 #Pre Flight values
+prevCenter = (0,0)
+predCenter = (0,0)
+deltaCenter = (0,0)
 center = (0,0)
 backForward = 0
 leftRight = 0
 UpDown = 0
 turnLeftRight = 0
+Halted = False
 
 
 #Takeoff then wait for calibration
 drone.takeoff()
 #While drone state is "landed" wait
 while drone.NavData["demo"][0][2]:	time.sleep(0.1)
+
 
 print("Drone is flying")
 IMC = 	 drone.VideoImageCount		# Number of encoded videoframes
@@ -98,7 +103,7 @@ while not stop:
 	    #print str(cv2.contourArea(c))
 
 	    #Contour must be this big to count as ball. If number too small when no ball present may detect anything
-	    if cv2.contourArea(c) > 100:
+	    if cv2.contourArea(c) > 250:
 	        #Draw contour with circle
 	        (x,y),radius = cv2.minEnclosingCircle(c)
 	        center = (int(x),int(y))
@@ -116,17 +121,17 @@ while not stop:
 	        Ball is approx 2 inches in diameter
 	        I need the focal lenght of the camera, F
 	        Can be calculated F = (P*D)/W
-	        P is width in pixels of object, diameter in calculations from above, in my test photo 358.190826416 was calculated
+	        P is width in pixels of object, diameter in calculations from above, in my test photo 350.108642578 was calculated
 	        #print str(diameter)
-	        D is distance to object, 29.7cm in test
+	        D is distance to object, 30cm in test
 	        W is width of object in real life, 20cm for ball
-	        F = (358.190826416 * 29.7)/20  = 531.9133772277
+	        F = (350.108642578 * 30)/20  = 525.162963867
 
 	        D' = (W*F)/P
 	        '''
 	        #print str(diameter)
 	        W = 20
-	        F = 531.9133772277
+	        F = 525.162963867
 	        P = diameter
 	        Distance = (W*F)/(P*1.0) #*1.0 to ensure float calculates properly
 	        #print Distance
@@ -143,15 +148,39 @@ while not stop:
 	cv2.imshow("Detection Mask", np.hstack([pImg, output]))
 	cv2.waitKey(1)							# OpenCV for Linux has a bug and needs this line
 
-	if center[0] > 280 and center < 360:
-		drone.stop()
-	elif center[0] < 280:
-		drone.turnRight(0.3)
-	elif center[0] > 360:
-		drone.turnLeft(0.3)
+	#Calculate change in center and use to predict where the ball will be
+	deltaCenter = (center[0] - prevCenter[0], center[1] - prevCenter[1])
+	predCenter = (center[0] + deltaCenter[0], center[1] + deltaCenter[1])
 
+	'''
+	print "Current: " + str(center)
+	print "Prev: " + str(prevCenter)
+	print "Delta: " + str(deltaCenter)
+	'''
+	#Using prediction of where ball will be, rotate to face ball
+	if predCenter[0] > 280 and predCenter[0] < 360:
+		if not Halted:
+			drone.stop()
+			Halted = True
+		#If facing ball, try to get distance between 1m and 2m
+		if Distance < 200 and Distance > 100:
+			drone.stop()
+		elif Distance  > 200:
+			drone.moveForward(0.2)
+		elif Distance < 100:
+			drone.moveBackward(0.2)
+		#print "Current: " + str(center) + " Predicted: " + str(predCenter) + " Holding"
+	elif predCenter[0] < 280:
+		drone.turnLeft(0.3)
+		Halted = False
+		#print "Current: " + str(center) + " Predicted: " + str(predCenter) + " Turn Left"
+	elif predCenter[0] > 360:
+		drone.turnRight(0.3)
+		Halted = False
+		#print "Current: " + str(center) + " Predicted: " + str(predCenter) + " Turn Right"
 	#drone.stop()
 	#print str(turnLeftRight)
+	prevCenter = center
 
 
 ###Shutdown Sequence
