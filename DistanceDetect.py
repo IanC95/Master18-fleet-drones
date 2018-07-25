@@ -3,7 +3,7 @@ import numpy as np
 
 
 
-pImg = cv2.imread('Ball/20.jpg',1)
+pImg = cv2.imread('Ball/19.jpg',1)
 #pImg = cv2.resize(img,(800,600))		# Resize
 
 #Convert image from B,G,R to HSV
