@@ -33,7 +33,7 @@ time.sleep(0.5)	#give drone time to wake properly
 ##### Mainprogram begin #####
 drone.setConfigAllID()				# Go to multiconfiguration-mode
 drone.sdVideo()						# Choose lower resolution (hdVideo() for...well, guess it) If HD used camera must be recallibrated
-drone.frontCam()					# Choose front view
+drone.groundVideo(True)					# Choose front view
 CDC = drone.ConfigDataCount
 while CDC == drone.ConfigDataCount:	time.sleep(0.0001)	# Wait until it is done (after resync is done)
 drone.startVideo()					# Start video-function
@@ -61,9 +61,11 @@ Halted = False
 
 
 #Takeoff then wait for calibration
+'''
 drone.takeoff()
 #While drone state is "landed" wait
 while drone.NavData["demo"][0][2]:	time.sleep(0.1)
+'''
 
 
 print("Drone is flying")
@@ -192,8 +194,7 @@ time.sleep(0.5)
 drone.land()
 #Wait until drone says it has landed or timeout
 count = 0
-while not drone.NavData["demo"][0][2] or count>450:
+while not drone.NavData["demo"][0][2]:
 	time.sleep(0.01)
-	count = count + 1
 #Terminate program safely
 drone.shutdown()
