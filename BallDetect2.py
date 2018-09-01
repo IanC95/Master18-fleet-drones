@@ -3,15 +3,16 @@ import numpy as np
 
 
 
-img = cv2.imread('Ball/2.jpg',1)
+img = cv2.imread('Ball/18.jpg',1)
 pImg = cv2.resize(img,(800,600))		# Resize
 
 #Convert image from B,G,R to HSV
 hsv = cv2.cvtColor(pImg, cv2.COLOR_BGR2HSV)
 
 #range of orange in HSV
-lower_orange = np.array([7, 65, 65])
-upper_orange = np.array([10, 255, 255])
+lower_orange = np.array([15, 95, 95])   #Gimp values (37, 60, 54)
+upper_orange = np.array([35, 230, 230]) #Gimp values (51, 51, 80)
+
 
 #Threshold the hsv image
 mask = cv2.inRange(hsv, lower_orange, upper_orange)
@@ -31,7 +32,7 @@ if len(contours) != 0:
     #print str(cv2.contourArea(c))
 
     #Contour must be this big to count as ball. If number too small when no ball present may detect anything
-    if cv2.contourArea(c) > 5250:
+    if cv2.contourArea(c) > 525:
         #Draw contour with circle
         (x,y),radius = cv2.minEnclosingCircle(c)
         center = (int(x),int(y))
@@ -44,7 +45,7 @@ if len(contours) != 0:
         #Draw contour in green
         cv2.rectangle(output, (x,y),(x+w, y+h), (0, 255, 0),2)
         '''
-    
+
 #Show the images
 cv2.imshow("Ball", np.hstack([pImg, output]))
 cv2.waitKey(0)							# OpenCV for Linux has a bug and needs this line
