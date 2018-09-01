@@ -1,7 +1,8 @@
 import cv2
 import numpy as np
+import time
 
-
+startTime = time.time()
 
 img = cv2.imread('Ball/18.jpg',1)
 pImg = cv2.resize(img,(800,600))		# Resize
@@ -47,6 +48,8 @@ if len(contours) != 0:
         '''
 
 #Show the images
+endTime = time.Time()
+print "Time taken: " + str(endTime- startTime)
 cv2.imshow("Ball", np.hstack([pImg, output]))
 cv2.waitKey(0)							# OpenCV for Linux has a bug and needs this line
 cv2.destroyAllWindows()
