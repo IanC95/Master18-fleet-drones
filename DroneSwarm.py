@@ -4,7 +4,7 @@ drone1 = ps_drone.Drone()
 drone2 = ps_drone.Drone()
 print "1"
 
-drone1.DroneIP = "192.168.1.102"
+drone1.DroneIP = "192.168.1.101"
 drone2.DroneIP = "192.168.1.102"
 print "2"
 

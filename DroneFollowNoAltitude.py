@@ -215,13 +215,14 @@ while not stop:
 		#print "Current: " + str(center) + " Predicted: " + str(predCenter) + " Turn Right"
 	prevCenter = center
 
-
+	'''
 	if drone.NavData["demo"][3] > 85:
 		UpDown = -0.5
 		#drone.moveDown(0.5)
 	else:
 		UpDown = 0
 		#drone.moveUp(0)
+	'''
 
 	drone.move(0.0, backForward, UpDown, turnLeftRight)
 ###Shutdown Sequence

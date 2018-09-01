@@ -30,19 +30,6 @@ drone.useDemoMode(True)											# Just give me 15 basic dataset per second (is
 drone.getNDpackage(["demo"])	#Packets to be decoded, only decode what is neccassary for increased performance
 time.sleep(0.5)	#give drone time to wake properly
 
-
-if drone.State[31] == 1:
-	drone.printYellow("Drone is in emergency mode, attempting reset.")
-	drone.reset()
-	time.sleep(2)
-	drone.State[31] = 1
-	time.sleep(2)
-	#sys.exit()
-
-if drone.State[31] == 1:
-	drone.printRed("Reset failed, please remove battery and reboot drone.")
-	sys.exit()
-
 ##### Mainprogram begin #####
 drone.setConfigAllID()				# Go to multiconfiguration-mode
 drone.sdVideo()						# Choose lower resolution (hdVideo() for...well, guess it) If HD used camera must be recallibrated
@@ -50,7 +37,6 @@ drone.frontCam()					# Choose front view
 CDC = drone.ConfigDataCount
 while CDC == drone.ConfigDataCount:	time.sleep(0.0001)	# Wait until it is done (after resync is done)
 drone.startVideo()					# Start video-function
-drone.setSpeed(0.3)
 
 ###Prepare for takeoff
 drone.trim()
@@ -60,7 +46,7 @@ print "Auto=alternation:	" + str(drone.selfRotation)+"deg/sec"
 
 #range of orange in HSV
 lower_yellow = np.array([15, 95, 95])   #Gimp values (37, 60, 54)
-upper_yellow = np.array([35, 230, 230]) #Gimp values (51, 51, 80)
+upper_yellow = np.array([35, 240, 240]) #Gimp values (51, 51, 80)
 
 #Pre Flight values
 prevCenter = (0,0)
@@ -121,6 +107,17 @@ for i in drone.ConfigData:
 		if i[1] != "20":
 			drone.printYellow("Minimum altitude set to: " + str(i[1]) + " recommended value is 20.")
 
+if drone.State[31] == 1:
+	drone.printYellow("Drone is in emergency mode, attempting reset.")
+	drone.reset()
+	time.sleep(2)
+	drone.State[31] = 1
+	time.sleep(2)
+	#sys.exit()
+
+if drone.State[31] == 1:
+	drone.printRed("Reset failed, please remove battery and reboot drone.")
+	sys.exit()
 
 #Takeoff then wait for calibration
 drone.takeoff()
@@ -185,10 +182,8 @@ while not stop:
 
 	#print drone.NavData["demo"][3]
 
-	UpDown = 0
-	turnLeftRight = 0
-	backForward = 0
 	#Using prediction of where ball will be, rotate to face ball
+	'''
 	if predCenter[0] > 280 and predCenter[0] < 360:
 		if not Halted:
 			drone.stop()
@@ -197,33 +192,53 @@ while not stop:
 		if Distance < 150 and Distance > 50:
 			drone.stop()
 		elif Distance  > 150:
-			backForward = 0.1
-			#drone.moveForward(0.1)
+			drone.moveForward(0.1)
 		elif Distance < 50:
-			backForward = -0.1
-			#drone.moveBackward(0.1)
+			drone.moveBackward(0.1)
 		#print "Current: " + str(center) + " Predicted: " + str(predCenter) + " Holding"
 	elif predCenter[0] < 280:
-		turnLeftRight = -0.4
-		#drone.turnLeft(0.3)
+		drone.turnLeft(0.3)
 		Halted = False
 		#print "Current: " + str(center) + " Predicted: " + str(predCenter) + " Turn Left"
 	elif predCenter[0] > 360:
-		turnLeftRight = 0.4
-		#drone.turnRight(0.3)
+		drone.turnRight(0.3)
 		Halted = False
 		#print "Current: " + str(center) + " Predicted: " + str(predCenter) + " Turn Right"
 	prevCenter = center
 
+	if drone.NavData["demo"][3] < 30:
+		drone.moveUp(0.1)
+	elif drone.NavData["demo"][3] > 85:
+		drone.moveDown(0.1)
+	else:
+		drone.moveUp(0)
+	'''
 
-	if drone.NavData["demo"][3] > 85:
+	drone.stop()
+	if predCenter[0] > 280 and predCenter[0] < 360:
+		turnLeftRight = 0
+	elif predCenter[0] < 280:
+		turnLeftRight = -0.4
+	elif predCenter[0] > 360:
+		turnLeftRight = 0.4
+
+
+	if Distance < 100 and Distance > 50:
+		backForward = 0
+	elif Distance > 100:
+		backForward = 0.1
+	elif Distance < 75:
+		backForward = -0.2
+
+	if drone.NavData["demo"][3] < 10:
+		UpDown = 0.05
+	elif drone.NavData["demo"][3] > 100:
 		UpDown = -0.5
-		#drone.moveDown(0.5)
 	else:
 		UpDown = 0
-		#drone.moveUp(0)
 
 	drone.move(0.0, backForward, UpDown, turnLeftRight)
+
 ###Shutdown Sequence
 #Stop Moving
 drone.stop()
@@ -233,7 +248,7 @@ time.sleep(0.5)
 drone.land()
 #Wait until drone says it has landed or timeout
 count = 0
-while not drone.NavData["demo"][0][2] or count>450:
+while not drone.NavData["demo"][0][2] and count<450:
 	time.sleep(0.01)
 	count = count + 1
 #Terminate program safely
