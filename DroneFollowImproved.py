@@ -1,8 +1,4 @@
 #########
-# useVideo.py
-# This program is part of the online PS-Drone-API-tutorial on www.playsheep.de/drone.
-# It shows the usage of the video-function of a Parrot AR.Drone 2.0 using the PS-Drone-API.
-# The drone will stay on the ground.
 # Dependencies: a POSIX OS, openCV2, PS-Drone-API 2.0 beta or higher.
 # (w) J. Philipp de Graaff, www.playsheep.de, 2016
 ##########
@@ -11,14 +7,14 @@
 #   Visit www.playsheep.de/drone or see the PS-Drone-API-documentation for an abstract from the Artistic License 2.0.
 ###########
 
-##### Suggested clean drone startup sequence #####
+##### Drone startup sequence #####
 import time, sys
 import ps_drone													# Import PS-Drone-API
 import cv2														# Import OpenCV
 import numpy as np												# Import numpy
 
-print "Hold escape to exit program"
-drone = ps_drone.Drone()										# Start using drone
+print "Hold space to emergency stop, any other key to safely land"
+drone = ps_drone.Drone()
 drone.startup()													# Connects to drone and starts subprocesses
 
 drone.reset()													# Sets drone's status to good (LEDs turn green when red)
@@ -32,7 +28,7 @@ time.sleep(0.5)	#give drone time to wake properly
 
 ##### Mainprogram begin #####
 drone.setConfigAllID()				# Go to multiconfiguration-mode
-drone.sdVideo()						# Choose lower resolution (hdVideo() for...well, guess it) If HD used camera must be recallibrated
+drone.sdVideo()						# Choose lower resolution video
 drone.frontCam()					# Choose front view
 CDC = drone.ConfigDataCount
 while CDC == drone.ConfigDataCount:	time.sleep(0.0001)	# Wait until it is done (after resync is done)
@@ -44,7 +40,7 @@ print("Calibrating trim")
 drone.getSelfRotation(5)
 print "Auto=alternation:	" + str(drone.selfRotation)+"deg/sec"
 
-#range of orange in HSV
+#range of yellow in HSV
 lower_yellow = np.array([15, 95, 95])   #Gimp values (37, 60, 54)
 upper_yellow = np.array([35, 240, 240]) #Gimp values (51, 51, 80)
 
@@ -57,7 +53,8 @@ backForward = 0
 leftRight = 0
 UpDown = 0
 turnLeftRight = 0
-Halted = False
+F = 525.162963867
+W = 20
 
 def distance(focal, itemWidth, pixelWidth):
 	'''
@@ -88,6 +85,7 @@ def detectColor(inputImage, lowerBound, upperBound):
 
 	return outputImage, mask, contours
 
+#Display current minimum altitude
 for i in drone.ConfigData:
     if i[0] == "control:altitude_min":
         print str(i) + "Count: " + str(drone.ConfigDataCount) + " Timestamp: " + str(drone.ConfigDataTimeStamp)
@@ -96,6 +94,7 @@ print "Setting \"control:altitude_min\" to \"20\"..."
 CDC = drone.ConfigDataCount
 NDC = drone.NavDataCount
 refTime = time.time()
+#Attempt to set altitude to 20, so not to collide with ceiling
 drone.setConfig("control:altitude_min", "20")
 while CDC == drone.ConfigDataCount: time.sleep(0.001)
 print "Finished after " + str(time.time()-refTime) + " seconds, " + str(drone.NavDataCount -NDC) + " NavData were recieved meanwhile."
@@ -103,18 +102,19 @@ print "Finished after " + str(time.time()-refTime) + " seconds, " + str(drone.Na
 drone.getConfig()
 for i in drone.ConfigData:
     if i[0] == "control:altitude_min":
-        #print str(i) + "Count: " + str(drone.ConfigDataCount) + " Timestamp: " + str(drone.ConfigDataTimeStamp)
+        #If setting min altitude failed, warn user, but continue.
 		if i[1] != "20":
 			drone.printYellow("Minimum altitude set to: " + str(i[1]) + " recommended value is 20.")
 
+#If drone is in emergency mode, attempt to exit.
 if drone.State[31] == 1:
 	drone.printYellow("Drone is in emergency mode, attempting reset.")
 	drone.reset()
 	time.sleep(2)
 	drone.State[31] = 1
 	time.sleep(2)
-	#sys.exit()
 
+#If reset fails, terminate program and suggest user remove battery. Doing a hard reset.
 if drone.State[31] == 1:
 	drone.printRed("Reset failed, please remove battery and reboot drone.")
 	sys.exit()
@@ -124,23 +124,31 @@ drone.takeoff()
 #While drone state is "landed" wait
 while drone.NavData["demo"][0][2]:	time.sleep(0.1)
 
+#Calibration done, drone is in the air.
 print"Drone is flying"
 IMC = 	 drone.VideoImageCount		# Number of encoded videoframes
 stop =	 False
+#Main flight loop
 while not stop:
 	while drone.VideoImageCount==IMC: time.sleep(0.01)	# Wait until the next video-frame
 	IMC = drone.VideoImageCount
+
 	key = drone.getKey()
-	if key:		stop = True
-	k = cv2.waitKey(33)
-	if k == 27:
+	if key == " ":
+		#If space is pressed emergency stop
+		stop = True
+		drone.shutdown()
+		sys.exit()
+	elif key:
+		#Any other key calmy shut down
 		stop = True
 	pImg  = drone.VideoImage					# Copy video-image
 	Distance = 150
 
-
+	#Threshold image for colour
 	output, mask, contours = detectColor(pImg, lower_yellow, upper_yellow)
 
+	#If a contour is found
 	if len(contours) != 0:
 	    #Draw in blue the found contours
 	    cv2.drawContours(output, contours, -1, 255, 3)
@@ -149,7 +157,7 @@ while not stop:
 	    c = max(contours, key = cv2.contourArea)
 	    #print str(cv2.contourArea(c))
 
-	    #Contour must be this big to count as ball. If number too small when no ball present may detect anything
+	    #Contour must be this big to count as ball. If number too small when no ball present, program may detect anything
 	    if cv2.contourArea(c) > 250:
 	        #Draw contour with circle
 			(x,y),radius = cv2.minEnclosingCircle(c)
@@ -158,11 +166,10 @@ while not stop:
 			radius = int(radius)
 			cv2.circle(output,center,radius,(0,255,0),2)
 
-			F = 525.162963867
-			W = 20
-
+			#calculate distance
 			Distance = distance(F, W, diameter)
 
+			#Draw estimated distance on image
 			text = "Estimated distance = " + str(round(Distance, 1)) + " centimeters"
 			font = cv2.FONT_HERSHEY_SIMPLEX
 			pImg = cv2.resize(pImg,(640,360))		# Resize
@@ -180,40 +187,7 @@ while not stop:
 	deltaCenter = (center[0] - prevCenter[0], center[1] - prevCenter[1])
 	predCenter = (center[0] + deltaCenter[0], center[1] + deltaCenter[1])
 
-	#print drone.NavData["demo"][3]
-
-	#Using prediction of where ball will be, rotate to face ball
-	'''
-	if predCenter[0] > 280 and predCenter[0] < 360:
-		if not Halted:
-			drone.stop()
-			Halted = True
-		#If facing ball, try to get distance between 0.5m and 1.5m
-		if Distance < 150 and Distance > 50:
-			drone.stop()
-		elif Distance  > 150:
-			drone.moveForward(0.1)
-		elif Distance < 50:
-			drone.moveBackward(0.1)
-		#print "Current: " + str(center) + " Predicted: " + str(predCenter) + " Holding"
-	elif predCenter[0] < 280:
-		drone.turnLeft(0.3)
-		Halted = False
-		#print "Current: " + str(center) + " Predicted: " + str(predCenter) + " Turn Left"
-	elif predCenter[0] > 360:
-		drone.turnRight(0.3)
-		Halted = False
-		#print "Current: " + str(center) + " Predicted: " + str(predCenter) + " Turn Right"
-	prevCenter = center
-
-	if drone.NavData["demo"][3] < 30:
-		drone.moveUp(0.1)
-	elif drone.NavData["demo"][3] > 85:
-		drone.moveDown(0.1)
-	else:
-		drone.moveUp(0)
-	'''
-
+	#Stop all movement, then move where required.
 	drone.stop()
 	if predCenter[0] > 280 and predCenter[0] < 360:
 		turnLeftRight = 0
